@@ -11,8 +11,10 @@
                 @endforeach
             </select>
             <button class="btn btn-light ms-auto"><i class="fa-solid fa-file-arrow-up"></i></button>
-            <button class="btn btn-light"><i class="fa-solid fa-file-arrow-down"></i></button>
-            <button class="btn btn-primary">Tambah User</button>
+            <button class="btn btn-light" onclick="exportToXLSX()"><i class="fa-solid fa-file-arrow-down"></i></button>
+            @if (auth()->user()->role == 1)
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#Modal">Tambah User</button>
+            @endif
         </div>
 
         <form id="searchForm" class="mb-3">
@@ -45,8 +47,10 @@
                 <div>Terpilih <strong id="selectedUser">0</strong> User</div>
                 <div class="ms-auto">
                     <button class="btn btn-primary">Cetak kwitansi</button>
-                    <button class="btn btn-success btn-aktifkan-batch" onclick="handleBatch(1)">Aktifkan</button>
-                    <button class="btn btn-danger btn-isolir-batch" onclick="handleBatch(2)">Isolir</button>
+                    @if (auth()->user()->role == 1)
+                        <button class="btn btn-success btn-aktifkan-batch" onclick="handleBatch(1)">Aktifkan</button>
+                        <button class="btn btn-danger btn-isolir-batch" onclick="handleBatch(2)">Isolir</button>
+                    @endif
                 </div>
             </div>
             <table class="table bg-white position-relative" style="z-index: 2">
@@ -126,6 +130,81 @@
             </div>
         </div>
     </div>
+    <div class="modal fade" id="Modal" tabindex="-1" aria-labelledby="ModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Tambah User</h5>
+                </div>
+                <div class="modal-body">
+                    <form class="form" id="createUser">
+                        <div class="form-group mb-2">
+                            <label for="_nama">Nama</label>
+                            <input type="text" id="_nama" name="_nama" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="_no_telp">No Telp</label>
+                            <input type="tel" id="_no_telp" name="_no_telp" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="_email">Email</label>
+                            <input type="email" id="_email" name="_email" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="_server_id">Server</label>
+                            <select class="form-select" id="_server_id" id="nameid">
+                                <option value="">-- Pilih Server --</option>
+                                @foreach (\App\Models\Server::all() as $server)
+                                    <option value="{{ $server->id }}">{{ $server->name }}</option>
+                                @endforeach
+                            </select>
+                            <div class="invalid-feedback"></div>
+
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="_mac">MAC</label>
+                            <input type="text" id="_mac" name="_mac" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="_alamat">Alamat</label>
+                            <textarea id="_alamat" name="_alamat" class="form-control" rows="2"></textarea>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="_created_at">Tanggal Pasang</label>
+                            <input type="date" id="_created_at" name="_created_at" class="form-control"
+                                value="{{ date('Y-m-d') }}">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="_paket_id">Bandwidth</label>
+                            <select class="form-select" id="_paket_id" id="nameid">
+                                <option value="">-- Pilih Bandwidth --</option>
+                                @foreach (\App\Models\Paket::all() as $paket)
+                                    <option value="{{ $paket->id }}">{{ $paket->bandwidth }}Mbps</option>
+                                @endforeach
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <button class="d-none"></button>
+                    </form>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button class="btn btn-primary" id="createUserBtn">
+                        <i class="fa-solid fa-spin fa-spinner me-1 d-none"></i>
+                        Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 
     <script>
         const menubar = document.getElementById('menubar');
@@ -245,7 +324,7 @@
                     <td>${data.va}</td>
                     <td style="cursor:pointer" data-bs-toggle="collapse" data-bs-target="#collapse${data.id}"> <a href="javascript:;" class="text-decoration-none">${data.nama}</a></td>
                     <td>${data.tanggal}</td>
-                    <td>${formatUang(data.invoice)}</td>
+                    <td>${formatUang(data.invoice.tagihan - data.invoice.total)}</td>
                     <td>
                         <small class="d-inline-flex px-2 py-1 fw-semibold text-${data.status[1]} bg-${data.status[1]} bg-opacity-10 border border-${data.status[1]} border-opacity-10 rounded-2">${data.status[0]}</small>
                     </td>
@@ -257,13 +336,13 @@
                                 <div class="d-flex gap-5 mb-4 justify-content-between">
                                     <div class="w-100">
                                         <small class="text-muted">Total tagihan</small>
-                                        <h3 class="mb-2">${formatUang(data.invoice)}</h3>
+                                        <h3 class="mb-2">${formatUang(data.invoice.tagihan - data.invoice.total)}</h3>
 
                                         <small class="text-muted">Pembayaran Bulanan</small>
-                                        <p class="mb-2">${formatUang(data.bulanan)}</p>
+                                        <p class="mb-2">${formatUang(data.invoice.paket.harga)}</p>
 
                                         <small class="text-muted">Menunggak</small>
-                                        <p class="mb-2">${data.tunggakan} Bulan</p>
+                                        <p class="mb-2">${data.invoice.tunggakan} Bulan</p>
 
 
                                     </div>
@@ -284,7 +363,7 @@
                                         <p class="mb-2">${data.mac}</p>
 
                                         <small class="text-muted">Bandwidth</small>
-                                        <p class="mb-2">${data.bandwidth}Mbps</p>
+                                        <p class="mb-2">${data.invoice.paket.bandwidth}Mbps</p>
 
                                         <small class="text-muted">Server</small>
                                         <p class="mb-2">${data.server.name}</p>
@@ -293,9 +372,11 @@
 
                                 </div>
                                 <div class="text-end">
-                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bayarModal" onclick="modal${data.invoice > 0 ? 'Bayar' : 'Riwayat'}Show('${data.id}')">${data.invoice > 0 ? 'Bayar' : 'Riwayat Pembayaran'}</button>
-                                    <button class="btn btn-primary">Cetak kwitansi</button>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bayarModal" onclick="modal${(data.invoice.tagihan - data.invoice.total) > 0 ? 'Bayar' : 'Riwayat'}Show('${(data.invoice.tagihan - data.invoice.total) > 0 ? data.invoice.id : data.id}')">${(data.invoice.tagihan - data.invoice.total)  > 0 ? 'Bayar' : 'Riwayat Pembayaran'}</button>
+                                    @if (auth()->user()->role == 1)
+                                    <button class="btn btn-primary" onclick="cetakKwitansi('${data.id}')">Cetak kwitansi</button>
                                     <button class="btn btn-${data.status[0] == 'Aktif' ? 'danger' : 'success'} btn-isolir" data-id="${data.id}" data-nama="${data.nama}" data-status="${data.status[0]}">${data.status[0] == 'Isolir' ? 'Aktifkan' : 'Isolir'}</button>
+                                    @endif
                                 </div>
                             </div>
                     </td>
@@ -304,9 +385,9 @@
 
         const tag = (id, text) => {
             return `<button class="btn btn-outline-primary btn-sm btn-tag flex-shrink-0" onclick="removeTag(this)" data-id="${id}">
-                    ${text}
-                    <i class="fa-solid fa-xmark ms-2"></i>
-                </button>`
+                ${text}
+                <i class="fa-solid fa-xmark ms-2"></i>
+            </button>`
         }
 
         function removeTag(el) {
@@ -366,6 +447,7 @@
                 .then(response => {
                     document.getElementById('row-length').textContent = response.data.length + ' User';
                     if (response.data.length > 0) {
+
                         response.data.forEach(data => {
                             tbody.insertAdjacentHTML('beforeend', tr(data))
                         });
@@ -375,10 +457,10 @@
                     }
                 })
                 .catch(error => {
+                    console.error(error);
                     tbody.insertAdjacentHTML('beforeend', `<tr><td colspan="7" class="text-center">Error</td></tr>`)
                 })
                 .finally(response => {
-                    // document.querySelector('button[data-bs-target="#bayarModal"]').click()
                     loading.remove();
                     const checkUsers = document.querySelectorAll('.check-user');
                     checkUsers.forEach(check => {
@@ -407,8 +489,6 @@
                             }
 
                             document.getElementById('selectedUser').innerHTML = selectedUser.length
-
-
                         })
                     })
 
@@ -426,108 +506,111 @@
                         }
                     })
 
-                    document.querySelectorAll('.btn-isolir').forEach(btn => {
-                        btn.addEventListener('click', e => {
-                            Alert.fire({
-                                icon: 'warning',
-                                title: e.target.dataset.status == 'Aktif' ? 'Isolir' :
-                                    'Aktivasi',
-                                text: `Apakah anda yakin ${e.target.dataset.status == 'Aktif' ? 'isolir' : 'aktifkan'} user ${e.target.dataset.nama}?`,
-                                showCancelButton: true,
-                                confirmButtonText: 'Ya, lanjutkan!',
-                                cancelButtonText: 'Batal',
-                                reverseButtons: true,
-                                showLoaderOnConfirm: true,
-                            }).then(result => {
-                                if (result.isConfirmed) {
-                                    axios.post(
-                                            `${appUrl}/api/pelanggan/isolir/${e.target.dataset.id}`, {
-                                                _method: 'PATCH'
-                                            })
-                                        .then(response => {
-                                            performSearch()
-                                            Alert.fire({
-                                                icon: 'success',
-                                                text: response.data.message,
-                                                toast: true,
-                                                position: "top-end",
-                                                timer: 1500,
-                                                showConfirmButton: false,
-                                            })
-                                        })
-                                        .catch(error => {
-                                            Alert.fire({
-                                                    icon: 'error',
-                                                    text: 'Terdapat kesalahan dalam memproses data',
+                    @if (auth()->user()->role == 1)
+                        document.querySelectorAll('.btn-isolir').forEach(btn => {
+                            btn.addEventListener('click', e => {
+                                Alert.fire({
+                                    icon: 'warning',
+                                    title: e.target.dataset.status == 'Aktif' ? 'Isolir' :
+                                        'Aktivasi',
+                                    text: `Apakah anda yakin ${e.target.dataset.status == 'Aktif' ? 'isolir' : 'aktifkan'} user ${e.target.dataset.nama}?`,
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Ya, lanjutkan!',
+                                    cancelButtonText: 'Batal',
+                                    reverseButtons: true,
+                                    showLoaderOnConfirm: true,
+                                }).then(result => {
+                                    if (result.isConfirmed) {
+                                        axios.post(
+                                                `${appUrl}/api/pelanggan/isolir/${e.target.dataset.id}`, {
+                                                    _method: 'PATCH'
+                                                })
+                                            .then(response => {
+                                                performSearch()
+                                                Alert.fire({
+                                                    icon: 'success',
+                                                    text: response.data.message,
                                                     toast: true,
                                                     position: "top-end",
                                                     timer: 1500,
                                                     showConfirmButton: false,
                                                 })
-                                                .then(() => {
-                                                    window.location.reload()
-                                                })
-                                        })
-                                }
+                                            })
+                                            .catch(error => {
+                                                Alert.fire({
+                                                        icon: 'error',
+                                                        text: 'Terdapat kesalahan dalam memproses data',
+                                                        toast: true,
+                                                        position: "top-end",
+                                                        timer: 1500,
+                                                        showConfirmButton: false,
+                                                    })
+                                                    .then(() => {
+                                                        window.location.reload()
+                                                    })
+                                            })
+                                    }
+                                })
                             })
                         })
-                    })
+                    @endif
                     isFetching = false;
                 })
 
         }
-
-        function handleBatch(status) {
-            Alert.fire({
-                icon: 'warning',
-                title: status == 2 ? 'Isolir' : 'Aktivasi',
-                text: `Apakah anda yakin ${status == 2 ? 'isolir' : 'aktifkan'} ${selectedUser.length} user ini?`,
-                showCancelButton: true,
-                confirmButtonText: 'Ya, lanjutkan!',
-                cancelButtonText: 'Batal',
-                reverseButtons: true,
-                showLoaderOnConfirm: true,
-            }).then(result => {
-                if (result.isConfirmed) {
-                    axios.post(
-                            `${appUrl}/api/pelanggan/isolir-batch`, {
-                                _method: 'PATCH',
-                                pelanggans: selectedUser,
-                                i: status
-                            })
-                        .then(response => {
-                            performSearch()
-                            Alert.fire({
-                                icon: 'success',
-                                text: response.data.message,
-                                toast: true,
-                                position: "top-end",
-                                timer: 1500,
-                                showConfirmButton: false,
-                            })
-                        })
-                        .catch(error => {
-                            Alert.fire({
-                                    icon: 'error',
-                                    text: 'Terdapat kesalahan dalam memproses data',
+        @if (auth()->user()->role == 1)
+            function handleBatch(status) {
+                Alert.fire({
+                    icon: 'warning',
+                    title: status == 2 ? 'Isolir' : 'Aktivasi',
+                    text: `Apakah anda yakin ${status == 2 ? 'isolir' : 'aktifkan'} ${selectedUser.length} user ini?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, lanjutkan!',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                    showLoaderOnConfirm: true,
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        axios.post(
+                                `${appUrl}/api/pelanggan/isolir-batch`, {
+                                    _method: 'PATCH',
+                                    pelanggans: selectedUser,
+                                    i: status
+                                })
+                            .then(response => {
+                                performSearch()
+                                Alert.fire({
+                                    icon: 'success',
+                                    text: response.data.message,
                                     toast: true,
                                     position: "top-end",
                                     timer: 1500,
                                     showConfirmButton: false,
                                 })
-                                .then(() => {
-                                    window.location.reload()
-                                })
-                        })
-                }
-            })
-        }
+                            })
+                            .catch(error => {
+                                Alert.fire({
+                                        icon: 'error',
+                                        text: 'Terdapat kesalahan dalam memproses data',
+                                        toast: true,
+                                        position: "top-end",
+                                        timer: 1500,
+                                        showConfirmButton: false,
+                                    })
+                                    .then(() => {
+                                        window.location.reload()
+                                    })
+                            })
+                    }
+                })
+            }
+        @endif
 
         const bayarModalBody = (data = null) => {
             let transaksis;
             let transaksisEl = '';
             if (data) {
-                transaksis = data.invoiceData.transaksis;
+                transaksis = data.transaksis;
                 if (transaksis.length > 0) {
                     transaksisEl = `
                     <div class="bg-light p-3" style="border-radius:var(--bs-modal-border-radius);">
@@ -548,14 +631,13 @@
                 }
             }
 
-            console.log(transaksisEl);
             return `<div class="modal-body p-0 overflow-hidden">
                 <div class="p-3">
                     <div>Pembayaran</div>
-                    <div class="placeholder-glow mb-3">${data ? data.id +' - '+data.nama : '<span class="placeholder col-5"></span>'}</div>
+                    <div class="placeholder-glow mb-3">${data ? data.pelanggan_id +' - '+data.pelanggan.nama : '<span class="placeholder col-5"></span>'}</div>
                     <div class="placeholder-glow">${data ? 'Tagihan' : '<span class="placeholder col-2"></span>'}</div>
-                    <h4 class="placeholder-glow">${data ? formatUang(data.invoice) : '<span class="placeholder col-6"></span>'}</h4>
-                    <div class="placeholder-glow mb-3">${data ? 'Bulanan '+ formatUang(data.bulanan) +' x '+ data.tunggakan+' Bulan tunggakan' : '<span class="placeholder col-8"></span>'}</div>
+                    <h4 class="placeholder-glow">${data ? formatUang(data.tagihan - data.total) : '<span class="placeholder col-6"></span>'}</h4>
+                    <div class="placeholder-glow mb-3">${data ? 'Bulanan '+ formatUang(data.paket.harga) +' x '+ data.tunggakan+' Bulan tunggakan' : '<span class="placeholder col-8"></span>'}</div>
                     <h4 id="nominalDisplay"></h4>
                     <form action="" class="mt-3" id="bayarModalForm" novalidate>
                         <input type="number" id="bayarModalNominal" class="form-control" placeholder="${data ? 'Nominal dibayar':''}" ${data ? '' : 'disabled'}>
@@ -573,7 +655,7 @@
 
         function modalBayarShow(userId) {
             modalContent.innerHTML = bayarModalBody();
-            axios.get(`${appUrl}/api/pelanggan/${userId}`)
+            axios.get(`${appUrl}/api/invoice/${userId}`)
                 .then(response => {
                     modalContent.innerHTML = bayarModalBody(response.data);
                     modalContent.querySelectorAll('.placeholder-glow').forEach(el => {
@@ -581,8 +663,8 @@
                     })
                     let nominal;
                     document.getElementById('bayarModalNominal').addEventListener('input', e => {
-                        if (e.target.value >= response.data.invoice) {
-                            e.target.value = response.data.invoice
+                        if (e.target.value >= (response.data.tagihan - response.data.total)) {
+                            e.target.value = (response.data.tagihan - response.data.total)
                         }
 
                         nominal = e.target.value
@@ -601,7 +683,6 @@
                                     nominal: nominal
                                 })
                                 .then(response => {
-                                    Alert.fire()
                                     document.querySelector('#bayarModal').querySelector(
                                         '[data-bs-dismiss="modal"]').click()
                                     performSearch()
@@ -621,7 +702,17 @@
                                         inputNominal.nextElementSibling.textContent = error.response.data
                                             .message
                                     } else {
-
+                                        Alert.fire({
+                                                icon: 'error',
+                                                text: 'Terdapat kesalahan dalam memproses data',
+                                                toast: true,
+                                                position: "top-end",
+                                                timer: 1500,
+                                                showConfirmButton: false,
+                                            })
+                                            .then(() => {
+                                                window.location.reload()
+                                            })
                                     }
                                 })
                                 .finally(() => {
@@ -634,7 +725,7 @@
                     })
                 })
                 .catch(error => {
-                    console.log(error);
+                    console.error(error);
                     modalContent.innerHTML = `<div class="alert alert-danger m-0" role="alert">
                         Gagal dalam mendapatkan data
                     </div>`
@@ -652,10 +743,11 @@
                 <h5 class="m-0 ms-auto text-end">&nbsp;</h5>
             </li>`
             if (data) {
+                console.log(data);
                 glow = '';
                 name = data.id + ' - ' + data.nama;
                 li = '';
-                data.invoice.forEach(item => {
+                data.invoices.forEach(item => {
                     let transaksisEl = '';
                     item.transaksis.forEach(i => {
                         transaksisEl += `<li class="list-group-item d-flex align-items-end bg-light">
@@ -697,17 +789,110 @@
             </div>`
         }
 
-        function modalRiwayatShow(userId) {
+        function modalRiwayatShow(pelanggan_id) {
             modalContent.innerHTML = riwayatModalBody();
-            axios.get(`${appUrl}/api/pelanggan/invoice/${userId}`)
+            axios.get(`${appUrl}/api/invoice?pelanggan_id=${pelanggan_id}`)
                 .then(response => {
                     modalContent.innerHTML = riwayatModalBody(response.data);
                 })
                 .catch(error => {
+                    console.log(error);
                     modalContent.innerHTML = `<div class="alert alert-danger m-0" role="alert">
                         Gagal dalam mendapatkan data
                     </div>`
                 })
+        }
+
+        function cetakKwitansi(sk) {
+            const elemenCetak = document.querySelector("table .collapse");
+            elemenCetak.print();
+
+            // Buat jendela sumber cetakan baru
+            const cetakan = window.open("", "Cetakan");
+
+            // Isi jendela cetakan dengan HTML elemen yang ingin dicetak
+            cetakan.document.open();
+            cetakan.document.write("<html><head><title>Cetak</title></head><body>");
+            cetakan.document.write(elemenCetak.innerHTML);
+            cetakan.document.write("</body></html>");
+            cetakan.document.close();
+
+            // Cetak jendela sumber cetakan
+
+            // Tutup jendela sumber cetakan setelah pencetakan selesai
+            cetakan.close();
+        }
+        const modal = document.getElementById('Modal');
+        modal.addEventListener('show.bs.modal', function (){
+            console.log(this);
+        })
+        const formCreateUser = document.getElementById('createUser');
+        const btnCreateUser = document.getElementById('createUserBtn');
+        btnCreateUser.addEventListener('click', e => {
+            handleCreateUser();
+        })
+        formCreateUser.addEventListener('submit', e => {
+            e.preventDefault()
+            handleCreateUser()
+        })
+
+        function handleCreateUser() {
+            btnCreateUser.querySelector('.fa-spin').classList.remove('d-none')
+            btnCreateUser.disabled = true
+            data = {
+                nama: formCreateUser.querySelector('#_nama').value,
+                no_telp: formCreateUser.querySelector('#_no_telp').value,
+                email: formCreateUser.querySelector('#_email').value,
+                server_id: formCreateUser.querySelector('#_server_id').value,
+                mac: formCreateUser.querySelector('#_mac').value,
+                alamat: formCreateUser.querySelector('#_alamat').value,
+                paket_id: formCreateUser.querySelector('#_paket_id').value,
+                created_at: formCreateUser.querySelector('#_created_at').value,
+            }
+            axios.post(`${appUrl}/api/pelanggan`, data)
+                .then(response => {
+                    performSearch()
+                    formCreateUser.querySelector('[data-bs-dismiss="modal"]').click()
+                })
+                .catch(error => {
+                    if (error.response.status == 422) {
+                        resetInput();
+                        errors = error.response.data.errors
+                        Object.keys(errors).forEach(key => {
+                            invalidateInput(key, errors[key])
+                        });
+                    } else {
+                        Alert.fire({
+                            icon: 'error',
+                            text: 'Terdapat kesalahan dalam memproses data',
+                            toast: true,
+                            position: "top-end",
+                            timer: 1500,
+                            showConfirmButton: false,
+                        });
+                    }
+                })
+                .finally(() => {
+                    btnCreateUser.querySelector('.fa-spin').classList.add('d-none')
+                    btnCreateUser.disabled = false
+                })
+        }
+
+        function invalidateInput(id, errors) {
+            const el = document.getElementById('_' + id)
+            el.classList.add('is-invalid');
+            let ul = '<ul>'
+            errors.forEach(error => {
+                ul += `<li>${error}</li>`
+            });
+            ul += "</ul>"
+            el.nextElementSibling.innerHTML = ul;
+        }
+
+        function resetInput() {
+            formCreateUser.querySelectorAll('.form-control, .form-select').forEach(el => {
+                el.classList.remove('is-invalid');
+            })
         }
     </script>
 @endpush

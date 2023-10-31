@@ -28,9 +28,7 @@ return new class extends Migration
                 ->restrictOnDelete();
             $table->string('va', 6);
             $table->text('alamat');
-            $table->tinyInteger('bandwidth');
             $table->string('mac',20);
-            $table->double('bulanan', 10, 2);
             $table->tinyInteger('status')->default(1);
             $table->timestamps();
         });

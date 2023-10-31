@@ -11,7 +11,8 @@
                         {{ $region->name }}</option>
                 @endforeach
             </select>
-            <button class="btn btn-primary ms-auto"><i class="fa-solid fa-file-arrow-down me-2"></i>Export</button>
+            <button class="btn btn-primary ms-auto" onclick="exportTransaksis(this)"><i
+                    class="fa-solid fa-file-arrow-down me-2"></i>Export</button>
         </div>
 
         <div class="d-flex gap-3 align-items-center mb-3">
@@ -40,6 +41,7 @@
                     </tr>
                 </thead>
                 <tbody id="tbody">
+
                 </tbody>
             </table>
         </div>
@@ -55,6 +57,7 @@
             </div>
         </div>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script>
         const tbody = document.getElementById('tbody');
 
@@ -114,7 +117,7 @@
                                 </div>
                                 <div>
                                     <small class="text-muted">Total tagihan</small>
-                                    <h5>${formatUang(data.invoice.get_total)}</h5>
+                                    <h5>${formatUang(data.invoice.tagihan)}</h5>
                                 </div>
                                 <div>
                                     <small class="text-muted">Jumlah terbayar</small>
@@ -126,6 +129,7 @@
                                 </div>
 
                             </div>
+                            @if(auth()->user()->role == 1)
                             <div class="text-end">
                                 <button class="btn btn-danger ms-auto" onclick="deleteTransaksi(${data.id})">
                                     <i class="fa-solid fa-trash"></i>
@@ -137,6 +141,7 @@
                                 </button>
                                 <button id="btnToggleModal" style="display:none" data-bs-toggle="modal" data-bs-target="#Modal"></button>
                             </div>
+                            @endif
                         </div>
                     </div>
                 </td>
@@ -144,12 +149,15 @@
         }
         let isFetching = false;
 
+        let params;
+
         function performSearch() {
             tbody.innerHTML = tr()
             if (isFetching) return;
             isFetching = true;
             s = sEl.value;
-            axios.get(`${appUrl}/api/transaksi?r=${r}&s=${s}&v=${v}&g=${g}`)
+            params = `r=${r}&s=${s}&v=${v}&g=${g}`;
+            axios.get(`${appUrl}/api/transaksi?${params}`)
                 .then(response => {
                     tbody.innerHTML = ''
                     if (response.data < 1) {
@@ -176,6 +184,7 @@
                 })
         }
 
+        @if(auth()->user()->role == 1)
         function deleteTransaksi(id) {
             Alert.fire({
                 icon: 'warning',
@@ -223,10 +232,11 @@
                 <div>Pembayaran</div>
                 <div class="mb-3">${data.pelanggan.id +' - '+data.pelanggan.nama}</div>
                 <div>Tagihan</div>
-                <h4>${formatUang(data.invoice)}</h4>
-                <h4 id="nominalDisplay"></h4>
-                <form action="" class="mt-3" id="bayarModalForm" novalidate>
-                    <input type="number" id="bayarModalNominal" class="form-control" placeholder="Nominal dibayar">
+                <h4>${formatUang(data.invoice.tagihan + data.nominal - data.invoice.total)}</h4>
+                <div class="mb-3">Bulanan ${formatUang(data.invoice.paket.harga) +' x '+ data.invoice.tunggakan} Bulan tunggakan</div>
+                <h4 id="nominalDisplay">${formatUang(data.nominal)}</h4>
+                <form class="mt-3" id="bayarModalForm" novalidate>
+                    <input type="number" id="bayarModalNominal" class="form-control" placeholder="Nominal dibayar" value="${data.nominal}">
                     <div id="bayarModalNominalFeedback" class="invalid-feedback"></div>
                     <div class="text-end mt-3">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
@@ -244,10 +254,121 @@
                     console.log(response.data);
                     modal.innerHTML = modalBody(response.data)
                     document.getElementById('btnToggleModal').click()
+                    let nominal;
+                    document.getElementById('bayarModalNominal').addEventListener('input', e => {
+                        if (e.target.value >= (response.data.invoice.tagihan - response.data.invoice.total +
+                                response.data.nominal)) {
+                            e.target.value = (response.data.invoice.tagihan - response.data.invoice.total +
+                                response.data.nominal)
+                        }
+
+                        nominal = e.target.value
+                        document.getElementById('nominalDisplay').textContent = formatUang(nominal)
+                    })
+                    let isLoading = false;
+                    const editForm = document.getElementById('bayarModalForm');
+                    editForm.addEventListener('submit', e => {
+                        e.preventDefault();
+                        if (!isLoading) {
+                            isLoading = true;
+                            const btnBayar = e.target.querySelector('.btn-bayar');
+                            btnBayar.disabled = true
+                            btnBayar.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Mengubah...'
+                            axios.post(`${appUrl}/api/transaksi/${id}`, {
+                                    _method: 'PATCH',
+                                    nominal: nominal
+                                })
+                                .then(response => {
+                                    console.log(response.data);
+                                    Alert.fire()
+                                    document.querySelector('#Modal').querySelector(
+                                        '[data-bs-dismiss="modal"]').click()
+                                    performSearch()
+                                    Alert.fire({
+                                        icon: 'success',
+                                        text: response.data.message,
+                                        toast: true,
+                                        position: "top-end",
+                                        timer: 1500,
+                                        showConfirmButton: false,
+                                    })
+                                })
+                                .catch(error => {
+                                    if (error.response.status == 422) {
+                                        const inputNominal = document.getElementById('bayarModalNominal')
+                                        inputNominal.classList.add('is-invalid')
+                                        inputNominal.nextElementSibling.textContent = error.response.data
+                                            .message
+                                    } else {
+                                        console.error(error);
+                                        Alert.fire({
+                                            icon: 'error',
+                                            text: 'Terdapat kesalahan dalam mengubah data',
+                                            toast: true,
+                                            position: 'top-end',
+                                            timer: 1500,
+                                            showConfirmButton: false
+                                        });
+                                    }
+                                })
+                                .finally(() => {
+                                    isLoading = false
+                                    btnBayar.disabled = false
+                                    btnBayar.innerHTML = 'Bayar'
+                                })
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error(error);
+                    Alert.fire({
+                        icon: 'error',
+                        text: 'Terdapat kesalahan dalam memproses data',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
                 })
                 .finally(() => {
                     btn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>Edit'
                     btn.disabled = false
+                })
+        }
+        @endif
+
+        function exportTransaksis(btn) {
+            btn.disabled = true
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Mendapatkan data...'
+            axios.get(`${appUrl}/api/transaksi/export?${params}`)
+                .then(response => {
+                    const obj = response.data;
+                    const header = Object.keys(obj[0]);
+                    const main = obj.map(item => {
+                        return Object.values(item);
+                    })
+                    const body = [header, ...main];
+                    console.log(body);
+
+                    const ws = XLSX.utils.aoa_to_sheet(Object.values(body));
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Data");
+                    XLSX.writeFile(wb, `Rekap Pembayaran User Bignet ${g}.xlsx`);
+                })
+                .catch(error => {
+                    console.error(error);
+                    Alert.fire({
+                        icon: 'error',
+                        text: 'Terdapat kesalahan dalam memproses data',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                })
+                .finally(() => {
+                    btn.disabled = false
+                    btn.innerHTML = '<i class="fa-solid fa-file-arrow-down me-2"></i>Export'
                 })
         }
     </script>

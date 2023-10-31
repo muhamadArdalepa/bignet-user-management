@@ -21,6 +21,10 @@ return new class extends Migration
                 ->on('pelanggans')
                 ->onDelete('RESTRICT')
                 ->onUpdate('CASCADE');
+            $table->foreignId('paket_id')
+                ->constrained()
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
             $table->double('total', 10, 2)->default(0);
             $table->tinyInteger('status')->default(0);
             $table->text('ket')->nullable();
