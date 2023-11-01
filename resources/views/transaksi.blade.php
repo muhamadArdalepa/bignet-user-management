@@ -68,7 +68,7 @@
 
         let r = rEl.value;
         let s = sEl.value;
-        let g = gEl.value;
+        let _g = gEl.value;
         let v = vEl.value;
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -80,7 +80,7 @@
         });
         sEl.addEventListener('input', debounce(performSearch, 300))
         gEl.addEventListener('change', e => {
-            g = gEl.value
+            _g = gEl.value
             performSearch()
         });
         vEl.addEventListener('change', e => {
@@ -88,7 +88,7 @@
             performSearch()
         })
 
-        const tr = (data = null) => {
+        const _tr = (data = null) => {
             if (!data) {
                 return `<tr id="loader">
                     <td colspan="7">
@@ -156,7 +156,7 @@
             if (isFetching) return;
             isFetching = true;
             s = sEl.value;
-            params = `r=${r}&s=${s}&v=${v}&g=${g}`;
+            params = `r=${r}&s=${s}&v=${v}&g=${_g}`;
             axios.get(`${appUrl}/api/transaksi?${params}`)
                 .then(response => {
                     tbody.innerHTML = ''
@@ -170,7 +170,7 @@
                         </tr>`)
                     } else {
                         response.data.forEach(item => {
-                            tbody.insertAdjacentHTML('beforeend', tr(item))
+                            tbody.insertAdjacentHTML('beforeend', _tr(item))
                         })
                     }
 
@@ -353,7 +353,7 @@
                     const ws = XLSX.utils.aoa_to_sheet(Object.values(body));
                     const wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, ws, "Data");
-                    XLSX.writeFile(wb, `Rekap Pembayaran User Bignet ${g}.xlsx`);
+                    XLSX.writeFile(wb, `Rekap Pembayaran User Bignet ${_g}.xlsx`);
                 })
                 .catch(error => {
                     console.error(error);

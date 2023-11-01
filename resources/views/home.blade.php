@@ -206,7 +206,6 @@
             </div>
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 
     <script>
         const menubar = document.getElementById('menubar');
@@ -229,7 +228,7 @@
         let r = url.searchParams.get('r') ?? 1;
         let v = url.searchParams.getAll('v[]');
         let i = url.searchParams.getAll('i[]');
-        let g = url.searchParams.get('g') ?? `{{ date('j') }}`;
+        let _g = url.searchParams.get('g') ?? `{{ date('j') }}`;
 
         document.addEventListener('DOMContentLoaded', () => {
             sEl.value = s;
@@ -248,8 +247,8 @@
                     .textContent))
             })
 
-            gEl.value = g
-            document.getElementById('gLabel').textContent = 'Tanggal ' + g
+            gEl.value = _g
+            document.getElementById('gLabel').textContent = 'Tanggal ' + _g
             performSearch()
         })
 
@@ -291,12 +290,12 @@
         })
 
         gEl.addEventListener('change', e => {
-            g = e.target.value
-            if (g == '') {
+            _g = e.target.value
+            if (_g == '') {
                 document.querySelector('.date-tag').classList.add('d-none');
             } else {
                 document.querySelector('.date-tag').classList.remove('d-none');
-                document.getElementById('gLabel').textContent = 'Tanggal ' + g
+                document.getElementById('gLabel').textContent = 'Tanggal ' + _g
             }
 
             performSearch()
@@ -315,7 +314,7 @@
                 </td>
             </tr>`
 
-        const tr = (data) => {
+        const _tr = (data) => {
             return `<tr>
                     <td>
                         <div class="d-flex gap-3 align-items-stretch">
@@ -449,13 +448,13 @@
             }
 
 
-            axios.get(`${appUrl}/api/pelanggan?r=${r}&s=${s}&v=${v}&i=${i}&g=${g}`)
+            axios.get(`${appUrl}/api/pelanggan?r=${r}&s=${s}&v=${v}&i=${i}&g=${_g}`)
                 .then(response => {
                     document.getElementById('row-length').textContent = response.data.length + ' User';
                     if (response.data.length > 0) {
 
                         response.data.forEach(data => {
-                            tbody.insertAdjacentHTML('beforeend', tr(data))
+                            tbody.insertAdjacentHTML('beforeend', _tr(data))
                         });
                     } else {
                         tbody.insertAdjacentHTML('beforeend',

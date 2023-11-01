@@ -17,7 +17,7 @@
 
 
     <!-- Scripts -->
-    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('build/assets/app-4343e92e.css') }}">
     <style>
         td {
             border-top: 1px solid var(--bs-border-color) !important;
@@ -76,6 +76,7 @@
 
 
     </div>
+    <script src="{{ asset('build/assets/app-4e78b1cc.js') }}"></script>
     <script>
         const appUrl = `{{ env('APP_URL') }}`
 
