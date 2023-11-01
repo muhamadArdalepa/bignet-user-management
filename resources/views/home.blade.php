@@ -13,7 +13,8 @@
             <button class="btn btn-light ms-auto"><i class="fa-solid fa-file-arrow-up"></i></button>
             <button class="btn btn-light" onclick="exportToXLSX()"><i class="fa-solid fa-file-arrow-down"></i></button>
             @if (auth()->user()->role == 1)
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#Modal">Tambah User</button>
+                <button class="btn btn-primary" onclick="createPelanggan()">Tambah User</button>
+                <button data-bs-toggle="modal" data-bs-target="#Modal" id="triggerModal" style="display: none"></button>
             @endif
         </div>
 
@@ -133,9 +134,7 @@
     <div class="modal fade" id="Modal" tabindex="-1" aria-labelledby="ModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5>Tambah User</h5>
-                </div>
+                <div class="modal-header h5 m-0">Tambah User</div>
                 <div class="modal-body">
                     <form class="form" id="createUser">
                         <div class="form-group mb-2">
@@ -145,7 +144,10 @@
                         </div>
                         <div class="form-group mb-2">
                             <label for="_no_telp">No Telp</label>
-                            <input type="tel" id="_no_telp" name="_no_telp" class="form-control">
+                            <div class="input-group">
+                                <span class="input-group-text">+</span>
+                                <input type="tel" id="_no_telp" name="_no_telp" class="form-control">
+                            </div>
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="form-group mb-2">
@@ -371,8 +373,12 @@
 
 
                                 </div>
-                                <div class="text-end">
-                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bayarModal" onclick="modal${(data.invoice.tagihan - data.invoice.total) > 0 ? 'Bayar' : 'Riwayat'}Show('${(data.invoice.tagihan - data.invoice.total) > 0 ? data.invoice.id : data.id}')">${(data.invoice.tagihan - data.invoice.total)  > 0 ? 'Bayar' : 'Riwayat Pembayaran'}</button>
+                                <div class="d-flex gap-2">
+                                    @if (auth()->user()->role == 1)
+                                    <button class="btn btn-warning btn-edit-pelanggan" onclick="editPelanggan(this,'${data.id}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn btn-danger" onclick="deletePelanggan('${data.id}')"><i class="fa-solid fa-trash"></i></button>
+                                    @endif
+                                    <button class="ms-auto btn btn-primary" data-bs-toggle="modal" data-bs-target="#bayarModal" onclick="modal${(data.invoice.tagihan - data.invoice.total) > 0 ? 'Bayar' : 'Riwayat'}Show('${(data.invoice.tagihan - data.invoice.total) > 0 ? data.invoice.id : data.id}')">${(data.invoice.tagihan - data.invoice.total)  > 0 ? 'Bayar' : 'Riwayat Pembayaran'}</button>
                                     @if (auth()->user()->role == 1)
                                     <button class="btn btn-primary" onclick="cetakKwitansi('${data.id}')">Cetak kwitansi</button>
                                     <button class="btn btn-${data.status[0] == 'Aktif' ? 'danger' : 'success'} btn-isolir" data-id="${data.id}" data-nama="${data.nama}" data-status="${data.status[0]}">${data.status[0] == 'Isolir' ? 'Aktifkan' : 'Isolir'}</button>
@@ -822,21 +828,83 @@
             // Tutup jendela sumber cetakan setelah pencetakan selesai
             cetakan.close();
         }
-        const modal = document.getElementById('Modal');
-        modal.addEventListener('show.bs.modal', function (){
-            console.log(this);
-        })
+        isEdit = false;
+        const triggerModal = document.getElementById('triggerModal');
         const formCreateUser = document.getElementById('createUser');
-        const btnCreateUser = document.getElementById('createUserBtn');
-        btnCreateUser.addEventListener('click', e => {
-            handleCreateUser();
-        })
-        formCreateUser.addEventListener('submit', e => {
-            e.preventDefault()
-            handleCreateUser()
+        triggerModal.addEventListener('click', e => {
+            formCreateUser.querySelectorAll('.is-invalid').forEach(el => {
+                el.classList.remove('is-invalid');
+            })
         })
 
-        function handleCreateUser() {
+        function createPelanggan() {
+            isEdit = false;
+            document.querySelector('#Modal .modal-header').innerHTML = 'Tambah User';
+            const inputs = formCreateUser.querySelectorAll('.form-control');
+            inputs.forEach(input => {
+                input.value = ''
+            })
+            formCreateUser.querySelector('#_no_telp').value = '62';
+            formCreateUser.querySelector('#_created_at').value = `{{ now()->format('Y-m-d') }}`;
+            const selects = formCreateUser.querySelectorAll('.form-control');
+            selects.forEach(select => {
+                select.selectedIndex = 0
+            })
+            triggerModal.click()
+        }
+        let pelangganId;
+
+        function editPelanggan(btn, id) {
+            pelangganId = id;
+            isEdit = true;
+            btn.innerHTML = '<i class="fa-solid fa-spin fa-spinner"></i>'
+            const btns = document.querySelectorAll('.btn-edit-pelanggan');
+            btns.forEach(b => {
+                b.disabled = true;
+            })
+            axios.get(`${appUrl}/api/pelanggan/${id}/edit`)
+                .then(response => {
+                    document.querySelector('#Modal .modal-header').innerHTML = 'Edit User';
+                    const data = response.data;
+                    formCreateUser.querySelector('#_nama').value = data.nama;
+                    formCreateUser.querySelector('#_no_telp').value = data.no_telp;
+                    formCreateUser.querySelector('#_email').value = data.email;
+                    formCreateUser.querySelector('#_server_id').value = data.server_id;
+                    formCreateUser.querySelector('#_mac').value = data.mac;
+                    formCreateUser.querySelector('#_alamat').value = data.alamat;
+                    formCreateUser.querySelector('#_paket_id').value = data.paket_id;
+                    formCreateUser.querySelector('#_created_at').value = data.created_atFormat;
+                    triggerModal.click()
+                })
+                .catch(error => {
+                    Alert.fire({
+                        icon: 'error',
+                        text: 'Terdapat kesalahan dalam memproses data',
+                        toast: true,
+                        position: "top-end",
+                        timer: 1500,
+                        showConfirmButton: false,
+                    })
+                })
+                .finally(() => {
+                    btn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>'
+                    btns.forEach(b => {
+                        b.disabled = false;
+                    })
+                })
+        }
+
+        const btnCreateUser = document.getElementById('createUserBtn');
+        btnCreateUser.addEventListener('click', e => {
+            handleFormSubmit();
+        })
+
+        formCreateUser.addEventListener('submit', e => {
+            e.preventDefault()
+            handleFormSubmit()
+        })
+
+        function handleFormSubmit() {
             btnCreateUser.querySelector('.fa-spin').classList.remove('d-none')
             btnCreateUser.disabled = true
             data = {
@@ -849,10 +917,24 @@
                 paket_id: formCreateUser.querySelector('#_paket_id').value,
                 created_at: formCreateUser.querySelector('#_created_at').value,
             }
-            axios.post(`${appUrl}/api/pelanggan`, data)
+
+            let url = `${appUrl}/api/pelanggan`;
+            if (isEdit) {
+                data._method = 'PUT';
+                url += '/' + pelangganId
+            }
+            axios.post(url, data)
                 .then(response => {
+                    Alert.fire({
+                        icon: 'success',
+                        text: response.data.message,
+                        toast: true,
+                        position: "top-end",
+                        timer: 1500,
+                        showConfirmButton: false,
+                    })
                     performSearch()
-                    formCreateUser.querySelector('[data-bs-dismiss="modal"]').click()
+                    document.querySelector('#Modal [data-bs-dismiss="modal"]').click()
                 })
                 .catch(error => {
                     if (error.response.status == 422) {
@@ -871,6 +953,7 @@
                             showConfirmButton: false,
                         });
                     }
+                    console.error(error);
                 })
                 .finally(() => {
                     btnCreateUser.querySelector('.fa-spin').classList.add('d-none')
@@ -892,6 +975,44 @@
         function resetInput() {
             formCreateUser.querySelectorAll('.form-control, .form-select').forEach(el => {
                 el.classList.remove('is-invalid');
+            })
+        }
+
+        function deletePelanggan(id) {
+            Alert.fire({
+                icon: 'warning',
+                title: 'Hapus',
+                text: `Apakah anda yakin ingin menghapus user ini?`,
+                showCancelButton: true,
+                confirmButtonText: 'Ya, lanjutkan!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                showLoaderOnConfirm: true,
+            }).then(result => {
+                if (result.isConfirmed) {
+                    axios.delete(`${appUrl}/api/pelanggan/${id}`)
+                        .then(response => {
+                            performSearch()
+                            Alert.fire({
+                                icon: 'success',
+                                text: response.data.message,
+                                toast: true,
+                                position: "top-end",
+                                timer: 1500,
+                                showConfirmButton: false,
+                            })
+                        })
+                        .catch(error => {
+                            Alert.fire({
+                                icon: 'error',
+                                text: 'Terdapat kesalahan dalam memproses data',
+                                toast: true,
+                                position: "top-end",
+                                timer: 1500,
+                                showConfirmButton: false,
+                            });
+                        })
+                }
             })
         }
     </script>

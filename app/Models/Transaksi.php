@@ -16,6 +16,6 @@ class Transaksi extends Model
         return $this->belongsTo(Pelanggan::class);
     }
     public function invoice(){
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(Invoice ::class);
     }
 }

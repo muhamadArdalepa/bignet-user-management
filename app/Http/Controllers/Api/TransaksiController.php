@@ -155,7 +155,7 @@ class TransaksiController extends Controller
         Transaksi::create([
             'invoice_id' => $id,
             'pelanggan_id' => $invoice->pelanggan_id,
-            'user_id' => 1,
+            'user_id' => auth()->user()->id,
             'nominal' => $request->nominal
         ]);
         return response(["message" => "Pembayaran berhasil"]);
