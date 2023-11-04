@@ -23,6 +23,9 @@
             border-top: 1px solid var(--bs-border-color) !important;
             border-bottom: none !important;
         }
+        ul{
+            padding-left: 1rem;
+        }
     </style>
 </head>
 
@@ -48,6 +51,9 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="/transaksi">Riwayat Transaksi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/setting">Pengaturan</a>
                             </li>
                         </ul>
 

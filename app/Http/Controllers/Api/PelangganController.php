@@ -132,13 +132,13 @@ class PelangganController extends Controller
                     'region_id' => $server->region_id,
                     'mac' => $request->mac,
                     'alamat' => $request->alamat,
-                    'created_at' => Carbon::parse($request->created_at)
+                    'created_at' => $request->created_at
                 ]);
 
                 Invoice::create([
                     'pelanggan_id' => $id,
                     'paket_id' => $request->paket_id,
-                    'pay_at' => Carbon::parse($request->created_at)->addMonth()->format('Y-m-d')
+                    'pay_at' => date('Y-m-d')
                 ]);
 
                 DB::commit();

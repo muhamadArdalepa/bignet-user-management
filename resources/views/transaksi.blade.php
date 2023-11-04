@@ -108,7 +108,7 @@
             </tr>
             <tr class="bg-light">
                 <td colspan="7" class="p-0 border-0">
-                    <div class="collapse" id="collapse${data.id}">
+                    <div class="collapse" data-bs-parent="#tbody" id="collapse${data.id}">
                         <div class="p-2 d-flex gap-3 justify-content-between align-items-end flex-wrap">
                             <div class="d-flex gap-3 flex-wrap justify-content-between justify-content-sm-start">
                                 <div>
@@ -152,7 +152,7 @@
         let params;
 
         function performSearch() {
-            tbody.innerHTML = tr()
+            tbody.innerHTML = _tr()
             if (isFetching) return;
             isFetching = true;
             s = sEl.value;

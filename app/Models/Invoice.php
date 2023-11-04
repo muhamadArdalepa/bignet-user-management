@@ -25,9 +25,9 @@ class Invoice extends Model
     public function getTunggakan()
     {
         if ($this->status == 0) {
-            return $this->created_at->diffInMonths(now()) + 1;
+            return \Carbon\Carbon::parse($this->pay_at)->diffInMonths(\Carbon\Carbon::parse(date('d-m-Y'))) + 1;
         }
-        return $this->created_at->diffInMonths($this->updated_at);
+        return \Carbon\Carbon::parse($this->pay_at)->diffInMonths(\Carbon\Carbon::parse($this->updated_at->format('d-m-Y'))) + 1;
     }
     public function getTagihan()
     {

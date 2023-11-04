@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('servers', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('kode',1);
+            $table->string('kode',1)->unique();
             $table->foreignId('region_id')
                 ->constrained()
                 ->cascadeOnUpdate()

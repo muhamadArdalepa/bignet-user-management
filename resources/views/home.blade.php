@@ -147,8 +147,8 @@
                             <div class="input-group">
                                 <span class="input-group-text">+</span>
                                 <input type="tel" id="_no_telp" name="_no_telp" class="form-control">
+                                <div class="invalid-feedback"></div>
                             </div>
-                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="form-group mb-2">
                             <label for="_email">Email</label>
@@ -332,7 +332,7 @@
                 </tr>
                 <tr class="bg-light">
                     <td colspan="6" class="p-0 border-0">
-                        <div class="collapse" id="collapse${data.id}">
+                        <div class="collapse" id="collapse${data.id}" data-bs-parent="#tbody">
                         <div class="p-2">
                                 <div class="d-flex gap-5 mb-4 justify-content-between">
                                     <div class="w-100">
@@ -827,7 +827,7 @@
             // Tutup jendela sumber cetakan setelah pencetakan selesai
             cetakan.close();
         }
-        isEdit = false;
+        let isEdit = false;
         const triggerModal = document.getElementById('triggerModal');
         const formCreateUser = document.getElementById('createUser');
         triggerModal.addEventListener('click', e => {
